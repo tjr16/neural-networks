@@ -1,6 +1,7 @@
 function J = ComputeCost(X, Y, W, b, lambda)
 % A function that computes the cost function with
-% L2 regularizationfor a set of images.
+% L2 regularization for a set of images.
+% If lambda == 0, it computes the total loss.
 % ----------
 % Arguments:
 %   X: image pixel data, d X n (3072 X 10000) 
