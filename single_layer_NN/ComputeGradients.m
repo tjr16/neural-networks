@@ -11,7 +11,7 @@ function [grad_W, grad_b] = ComputeGradients(X, Y, P, W, lambda)
 %   lambda: penalty coefficient, hyperparamter
 % Return:
 %   grad_W: k X d (10 X 3072), partial J / partial W
-% grad_b: k X 1, partial J / partial W
+%   grad_b: k X 1, partial J / partial W
 
     nb = size(X, 2);  % batch size
     G = P - Y;  % error (partial L / partial z)

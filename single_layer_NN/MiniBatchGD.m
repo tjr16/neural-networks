@@ -1,5 +1,5 @@
 function [Wstar, bstar, metrics] = ...
-    MiniBatchGD(X, Y, X_val, Y_val, GDparams, W, b, lambda)
+    MiniBatchGD(X, Y, X_val, Y_val, GDparams, W, b, lambda, decay)
 % A function that evaluates, for a mini-batch,
 % the gradients of the cost function wrt W and b.
 % ----------
@@ -13,16 +13,23 @@ function [Wstar, bstar, metrics] = ...
 %       n_epochs: the number of runs through the whole training set
 %   W, b: network parameters
 %   lambda: penalty coefficient, hyperparamter
+%   decay: decay of learning rate (OPTIONAL)
 % Return:
 %   Wstar, bstar: network parameters after optimization
 %   metrics: [loss_train; loss_valid; cost_train; cost_valid]
 %           (4 X n_epochs)
 
     % parameters
+    if nargin < 9
+        decay = 1;
+    else
+        fprintf("Learning rate decay: %f\n", decay);
+    end
     n_batch = GDparams(1);
     eta = GDparams(2);
     n_epochs = GDparams(3);
     n = size(X, 2);
+    
     % save total loss and cost
     loss = zeros(1, n_epochs);
     cost = zeros(1, n_epochs);
@@ -56,6 +63,9 @@ function [Wstar, bstar, metrics] = ...
         loss_val(i) = ComputeCost(X_val, Y_val, W, b, 0);
         fprintf("Epoch %d, training cost: %f\n", i, cost(i));
         fprintf("\t validation cost: %f\n", cost_val(i));
+        
+        % learning rate decay
+        eta = eta * decay;
     end
     
     Wstar = W;
