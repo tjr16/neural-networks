@@ -1,5 +1,5 @@
 function [Wstar, bstar, metrics] = ...
-    MiniBatchGD(X, Y, X_val, Y_val, GDparams, W, b, lambda, decay)
+    MiniBatchGD(X, Y, X_val, Y_val, GDparams, W, b, lambda, decay, svm)
 % A function that evaluates, for a mini-batch,
 % the gradients of the cost function wrt W and b.
 % ----------
@@ -14,17 +14,23 @@ function [Wstar, bstar, metrics] = ...
 %   W, b: network parameters
 %   lambda: penalty coefficient, hyperparamter
 %   decay: decay of learning rate (OPTIONAL)
+%   svm: whether using SVM loss, bool
 % Return:
 %   Wstar, bstar: network parameters after optimization
 %   metrics: [loss_train; loss_valid; cost_train; cost_valid]
 %           (4 X n_epochs)
 
     % parameters
+    if nargin < 10
+        svm = false;
+    end
+    
     if nargin < 9
         decay = 1;
     else
         fprintf("Learning rate decay: %f\n", decay);
     end
+
     n_batch = GDparams(1);
     eta = GDparams(2);
     n_epochs = GDparams(3);
@@ -48,22 +54,22 @@ function [Wstar, bstar, metrics] = ...
             Xbatch = X(:, idx);
             Ybatch = Y(:, idx);
             % get output
-            P = EvaluateClassifier(Xbatch, W, b);
+            P = EvaluateClassifier(Xbatch, W, b, svm);
             % get gradient
             [grad_W, grad_b] = ...
-                ComputeGradients(Xbatch, Ybatch, P, W, lambda);
+                ComputeGradients(Xbatch, Ybatch, P, W, lambda, svm);
             % update parameters
             W = W - eta * grad_W;
             b = b - eta * grad_b;
         end
         % print and save loss
-        cost(i) = ComputeCost(X, Y, W, b, lambda);
-        cost_val(i) = ComputeCost(X_val, Y_val, W, b, lambda);
-        loss(i) = ComputeCost(X, Y, W, b, 0);
-        loss_val(i) = ComputeCost(X_val, Y_val, W, b, 0);
+        cost(i) = ComputeCost(X, Y, W, b, lambda, svm);
+        cost_val(i) = ComputeCost(X_val, Y_val, W, b, lambda, svm);
+        loss(i) = ComputeCost(X, Y, W, b, 0, svm);
+        loss_val(i) = ComputeCost(X_val, Y_val, W, b, 0, svm);
         fprintf("Epoch %d, training cost: %f\n", i, cost(i));
         fprintf("\t validation cost: %f\n", cost_val(i));
-        
+
         % learning rate decay
         eta = eta * decay;
     end

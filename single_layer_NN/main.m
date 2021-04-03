@@ -9,22 +9,26 @@ addpath 'utils' % utilities
 k = 10; d = 3072; n = 10000;
 rng(400);
 % some options
+LOSS_FUNC = 'entropy';      % {'SVM', 'entropy'}
 RUN_TEST = false;       % test analytical gradient computation
 LARGE_DATASET = false;   % use more training data
 DECAY = 1;           % learning rate decay after each epoch
-XAVIER = true;          % use Xavier distribution 
+XAVIER = false;          % use Xavier distribution 
 
 %% Important parameters
 % note: consider to keep #update instead of #epoch,
 % which is n/n_batch * n_epochs
 
 % TODO: set parameters here
+% cross entropy
 % n_batch=100; eta=1; n_epochs=40; lambda=0;
 % n_batch=100; eta=0.001; n_epochs=40; lambda=0;
 % n_batch=100; eta=0.001; n_epochs=40; lambda=0.1;	% best
 % n_batch=100; eta=0.001; n_epochs=40; lambda=1;
-% more settings
-n_batch=100; eta=0.001; n_epochs=250; lambda=0.1;
+% svm
+n_batch=100; eta=0.0001; n_epochs=150; lambda=0.01;
+% n_batch=100; eta=0.001; n_epochs=150; lambda=0.01;    % bad
+% n_batch=250; eta=0.0001; n_epochs=150; lambda=0.01;
 
 %% Load data
 if LARGE_DATASET
@@ -75,7 +79,7 @@ else
 end
 
 %% Test gradient computation
-if RUN_TEST
+if RUN_TEST && ~strcmp(LOSS_FUNC, 'SVM')
     runtests('testGradient.m');
 end
 
@@ -83,12 +87,16 @@ end
 GDparams = [n_batch, eta, n_epochs];
 
 [Wstar, bstar, metrics] = MiniBatchGD(...
-    trainX_nor, trainY, validX_nor, validY, GDparams, W, b, lambda, DECAY);
+    trainX_nor, trainY, validX_nor, validY, ...
+    GDparams, W, b, lambda, DECAY, strcmp(LOSS_FUNC, 'SVM'));
 
 %% Print accuracy
-train_acc = ComputeAccuracy(trainX_nor, trainy, Wstar, bstar);
-valid_acc = ComputeAccuracy(validX_nor, validy, Wstar, bstar);
-test_acc = ComputeAccuracy(testX_nor, testy, Wstar, bstar);
+train_acc = ComputeAccuracy(trainX_nor, trainy, Wstar, bstar, ...
+    strcmp(LOSS_FUNC, 'SVM'));
+valid_acc = ComputeAccuracy(validX_nor, validy, Wstar, bstar, ...
+    strcmp(LOSS_FUNC, 'SVM'));
+test_acc = ComputeAccuracy(testX_nor, testy, Wstar, bstar, ...
+    strcmp(LOSS_FUNC, 'SVM'));
 fprintf("Accuracy on training set: %f\n", train_acc);
 fprintf("Accuracy on validation set: %f\n", valid_acc);
 fprintf("Accuracy on test set: %f\n", test_acc);
