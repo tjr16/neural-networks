@@ -27,7 +27,7 @@ function J = ComputeCost(X, Y, W, b, lambda, svm)
     if ~svm
         if sizeY(1) == 1
             % to linear indices
-            lin_idx = sub2ind(size(P), trainy, 1:10000);
+            lin_idx = sub2ind(size(P), Y, 1:size(Y, 2));
             py = P(lin_idx);
         elseif sizeY(1) == 10
             py = sum(Y .* P, 1);     
