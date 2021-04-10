@@ -20,7 +20,9 @@ function [grad_W, grad_b] = ComputeGradients(X, Y, P, W, lambda, svm)
     if svm
         Py = repmat(sum(P .* Y, 1), [k, 1]);
         G = P - Py + 1 > 0;
-        G = G .* ~Y;    % remove s_y 
+        G = G .* ~Y;    % remove s_y (computed as s_j)
+        G_sy = - repmat(sum(G, 1), [k, 1]) .* Y;    % compute s_y
+        G = G + G_sy;   % add s_y
     else
         G = P - Y;  % error (partial L / partial z)        
     end
