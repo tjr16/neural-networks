@@ -32,13 +32,13 @@ GD2.cyclic = true;
 GD2.lr_max = 1e-1;
 GD2.ns = 500;
 
-%% Load data and initialize network parameters
-[train_data, valid_data, test_data] = loadData();
+%% Initialize network parameters
 [W, b] = initParam();
 nn = DoubleLayer(W, b);
 
 %% Run some tests
 if RUN_TEST
+    [train_data, valid_data, test_data] = loadData();   % use small dataset
     %% automatically test gradient computation
     runtests('testGradient.m');
     %% test GD algorithm
@@ -73,9 +73,19 @@ if RUN_TEST
     GD2 = tmp;
 end
 
+%% Coarse search
+[train_data, valid_data, test_data] = loadData(true, 5000);
+
+%% Fine search
+
+%% Final
+[train_data, valid_data, test_data] = loadData(true, 1000);
+
 %% Perform mini-batch GD
 [nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
 plotMetrics(metrics);
+
+
 
 %% Print accuracy
 % fprintf("Accuracy on training set: %f\n", train_acc);
