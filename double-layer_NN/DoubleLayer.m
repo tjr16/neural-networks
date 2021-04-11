@@ -2,7 +2,7 @@ classdef DoubleLayer
 % A value class as a double-layer neural network.
 
    %% === PROPERTIES ===
-	properties
+    properties
         H    % activation values, cell 1 X 2
         W    % weights, cell 1 X 2
         b    % bias, cell 1 X 2

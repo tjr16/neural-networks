@@ -1,18 +1,18 @@
 function [net, metrics] = miniBatchGD(train_data, valid_data, net)
-% A function that evaluates, for a mini-batch,
-% the gradients of the cost function wrt W and b.
+% A function that performs mini-batch gradient descent.
 % ----------
 % Arguments:
-%   X: image pixel data, d X n (3072 X 10000) 
-%      double, [0, 1]
-%   Y: k X n (10 X 10000), one-hot
+%   train_data: cell 1 X 3
+%       X: image pixel data, d X n (3072 X 10000) 
+%           double, [0, 1]
+%       Y: k X n (10 X 10000), one-hot
+%       y: 1 X n
+%   valid_data: cell 1 X 3
 %   net: network to be trained
-%   decay: decay of learning rate (OPTIONAL)
-
 % Return:
-%   Wstar, bstar: network parameters after optimization
-%   metrics: [loss_train; loss_valid; cost_train; cost_valid]
-%           (4 X n_epoch)
+%   net: trained network
+%   metrics: [loss_train; loss_valid; cost_train; cost_valid;
+%       acc_train; acc_valid]   (6 X n_epoch)
 
     % read data
     X = train_data{1}; Y = train_data{2}; y = train_data{3};

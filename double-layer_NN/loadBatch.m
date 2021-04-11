@@ -1,7 +1,6 @@
 function [X, Y, y] = loadBatch(filename)
-% A function that reads in the data from 
-% a CIFAR-10 batch file and returns the 
-% image and label data in separate files. 
+% A function that reads in the data from a CIFAR-10 batch file and 
+% returns the image and label data in separate files. 
 % ----------
 % Return:
 %   X: image pixel data, d X n (3072 X 10000) 
