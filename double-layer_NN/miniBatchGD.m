@@ -56,9 +56,9 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
             % get batch data
             j_start = (j-1)*n_batch + 1;
             j_end = j*n_batch;
-            idx = random_idx(j_start:j_end);
-            Xbatch = X(:, idx);
-            Ybatch = Y(:, idx);
+            indices = random_idx(j_start:j_end);
+            Xbatch = X(:, indices);
+            Ybatch = Y(:, indices);
             
             % run network and compute gradients
             net = net.computeGradients(Xbatch, Ybatch, lambda);

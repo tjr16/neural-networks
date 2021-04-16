@@ -315,3 +315,64 @@ fprintf("Accuracy on test set: %f\n", acc_final);
 NN2 = tmpNN; GD2 = tmpGD;
 
 % 10 cycles: 51.77%
+
+%% 5.learning rate range test
+[train_data, valid_data, test_data] = loadData(true, 5000);
+% stepsize = 8 epochs = 8 * 450 iterations
+tmp = GD2;
+GD2.n_batch = 100; 
+GD2.cyclic = true; 
+GD2.n_epoch = 8;
+GD2.ns = GD2.n_epoch * floor(45000/GD2.n_batch);  % ns == #update_steps
+GD2.lambda = 0.0021731;	% best lr
+
+% lr range test
+GD2.lr = 1e-9; GD2.lr_max = 1e0;
+[W, b] = initParam();
+nn = DoubleLayer(W, b);
+% really time consuming
+[etas, acc, acc_val] = lrRangeTest(train_data, valid_data, nn);
+
+% log plot
+figure;
+semilogx(etas,acc,etas,acc_val)
+grid on
+xlabel('log(learning rate)');
+ylabel('accuracy');
+legend('training', 'validation');
+
+% log plot, only valid
+figure;
+semilogx(etas,acc_val)
+grid on
+xlabel('log(learning rate)');
+ylabel('valid accuracy');
+
+% linear plot
+figure;
+plot(etas, acc_val);
+xlabel('eta');
+ylabel('validation accuracy');
+
+GD2 = tmp;
+
+%% final test for 5.
+[train_data, valid_data, test_data] = loadData(true, 1000);
+tmp = GD2;
+GD2.n_batch = 100; GD2.lr = 5e-4;
+GD2.cyclic = true; GD2.lr_max = 2e-2;
+GD2.ns = 2 * floor(49000/GD2.n_batch);	% stepsize <-> 2 epochs
+GD2.n_epoch = 20;	% 3 cycles <-> 6 ns <-> 12 epochs
+GD2.lambda = 0.0021731;	% best lr
+
+[nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
+figure;
+subplotMetrics(metrics);
+
+nn_eval = nn_trained.eval();
+nn_final = nn_eval.forward(test_data{1});
+P_final = nn_final.output();
+acc_final = computeAccuracy(P_final, test_data{3});
+fprintf("Accuracy on test set: %f\n", acc_final);
+
+GD2 = tmp;
