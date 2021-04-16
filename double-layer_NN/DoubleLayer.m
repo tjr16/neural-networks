@@ -8,13 +8,28 @@ classdef DoubleLayer
         b    % bias, cell 1 X 2
         grad_W    % gradient of W, cell 1 X 2
         grad_b    % gradient of b, cell 1 X 2
+        eval_mode % evaluation mode
+        prob      % probability of an element to be zeroed (dropout)
     end
    
     %% === METHODS ===
     methods
       
-        function obj = DoubleLayer(w, b)
+        function obj = DoubleLayer(w, b, dropout)
             % Constructor of class DoubleLayer
+            % ----------
+            % Arguments:
+            %   w, b: network parameter matrices
+            %   dropout: probability of an element to be zeroed
+            %       range: 0 < dropout < 1
+                        
+            if nargin < 3
+                obj.prob = 0;   % no dropout
+            elseif dropout <= 0 || dropout >= 1
+                error('Argument dropout: 0 < dropout < 1');
+            else
+                obj.prob = dropout;
+            end
             
             if nargin < 2
                 [obj.W, obj.b] = initParam();
@@ -23,19 +38,35 @@ classdef DoubleLayer
                 obj.b = b;
             end
 
-            obj.H = cell(1, 2);       
+            obj.H = cell(1, 2);
+            obj.eval_mode = false;
         end
       
-        function obj = forward(obj, X)
+        function [obj, mask] = forward(obj, X)
             % Forward propagation, store activation values.
             % ----------
             % Arguments:
             %   X: image pixel data, d X n (3072 X 10000) 
             %      double, [0, 1]
+            % Return:
+            %   obj: network with output
+            %   mask: dropout mask, element: 0 or 1/(1-p)
 
             s1 = obj.W{1} * X + obj.b{1};  % linear1
             s1(s1<0) = 0;  % activation1: ReLu
             obj.H{1} = s1;
+            
+            p = obj.prob;    
+            if obj.eval_mode
+                % evaluation mode
+                mask = ones(size(obj.H{1}));
+            else
+                % training mode
+                % dropout: reserve 1-p, scale
+                mask = (rand(size(obj.H{1})) > p)/(1-p);
+                obj.H{1} = obj.H{1} .* mask;
+            end
+
             s2 = obj.W{2} * obj.H{1} + obj.b{2};   % linear2
             obj.H{2} = softmax(s2);    % activation2: Softmax
         end
@@ -57,7 +88,8 @@ classdef DoubleLayer
             nb = size(X, 2);	% batch size
             
             % forward computation
-            obj = obj.forward(X);
+            obj.eval_mode = false;
+            [obj, mask] = obj.forward(X);
  
             % second layer
             G = obj.H{2} - Y;	% dL/dz2, z2 = W2 * X2 + b2
@@ -66,7 +98,7 @@ classdef DoubleLayer
             
             % first layer
             G = obj.W{2}' * G;  % dL/dX2, X2 = H1
-            G = G .* (obj.H{1} > 0);    % dL/dz1, z1 = W1 * X1 + b1
+            G = G .* (obj.H{1} > 0) .* mask;    % dL/dz1, z1 = W1 * X1 + b1
             grad_W1 = G * X'/ nb + 2 * lambda * obj.W{1};   % dL/dW1
             grad_b1 = G * ones(nb, 1) / nb;	% dL/db1
             
@@ -90,6 +122,14 @@ classdef DoubleLayer
             for i = 1: numel(obj.W)
                 penalty = penalty + lambda * sum(obj.W{i} .^ 2, 'all');
             end
+        end
+        
+        function obj = eval(obj)
+            obj.eval_mode = true;
+        end
+        
+        function obj = train(obj)
+            obj.eval_mode = false;
         end
         
     end

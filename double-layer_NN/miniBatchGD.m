@@ -76,6 +76,9 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
             net.b{2} = net.b{2} - eta * net.grad_b{2};
         end
         
+        % --- evaluation ---
+        net.eval_mode = true;
+        
         % get output
         net_train = net.forward(X);
         net_val = net.forward(X_val);
@@ -93,6 +96,9 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
         
         fprintf("Epoch %d, training cost: %f\n", i, cost(i));
         fprintf("\t validation cost: %f\n", cost_val(i));
+        
+        % --- evaluation ends ---
+        net.eval_mode = false;
     end
     
     metrics = [loss; loss_val; cost; cost_val; acc; acc_val];

@@ -144,12 +144,14 @@ GD2.lambda = 0.0021731;	% best lr
 
 [nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
 figure;
-plotMetrics(metrics);
+subplotMetrics(metrics);
 
-nn_final = nn_trained.forward(test_data{1});
+nn_eval = nn_trained.eval();
+nn_final = nn_eval.forward(test_data{1});
 P_final = nn_final.output();
 acc_final = computeAccuracy(P_final, test_data{3});
 fprintf("Accuracy on test set: %f\n", acc_final);
+
 GD2 = tmp;
 % Summary: test accuracy, 52.83%
 
@@ -279,3 +281,37 @@ for i = 1: n_cycle
 end
 fprintf("Test accuracy, ensemble model: %f\n", accs{end});
 GD2 = tmp;
+
+%% 4. dropout
+dropout = 0.5;
+[train_data, valid_data, test_data] = loadData(true, 1000);
+
+% config
+tmpNN = NN2; tmpGD = GD2;
+NN2.m = 100;    % TODO: set #nodes here
+GD2.n_batch = 100; GD2.lr = 1e-5;
+GD2.cyclic = true; GD2.lr_max = 1e-1;
+GD2.ns = 2 * floor(49000/GD2.n_batch);  % stepsize <-> 2 epochs
+GD2.n_epoch = 40;    % 4 epochs for 1 cycle
+GD2.lambda = 0;
+
+% init network
+[W, b] = initParam();
+nn = DoubleLayer(W, b, dropout);
+
+% train
+[nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
+
+% evaluate
+figure;
+subplotMetrics(metrics);
+
+nn_eval = nn_trained.eval();
+[nn_final, ~] = nn_eval.forward(test_data{1});
+P_final = nn_final.output();
+acc_final = computeAccuracy(P_final, test_data{3});
+fprintf("Accuracy on test set: %f\n", acc_final);
+
+NN2 = tmpNN; GD2 = tmpGD;
+
+% 10 cycles: 51.77%
