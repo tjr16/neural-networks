@@ -27,6 +27,7 @@ function subplotMetrics(metrics, show_step, simple)
     cost_train = metrics(3, :); cost_valid = metrics(4, :);
     acc_train = metrics(5, :); acc_valid = metrics(6, :);
 
+    figure;
     subplot(2, 2, 1);
     if show_step
         plot(1: show_step: show_step * numel(loss_train), loss_train, blue);

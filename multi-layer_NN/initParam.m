@@ -1,5 +1,5 @@
 function [W, b] = initParam(param)
-% A function that gives initial values of parameters.
+% A function that initialize parameters using He initialization.
 % ----------
 % Arguments:
 %   param: struct, parameters of the network
@@ -19,7 +19,7 @@ function [W, b] = initParam(param)
     b = cell(1, n_layers);
     
     for i = 1: n_layers
-        W{i} = 1/sqrt(param.d(i)) * randn(param.d(i+1), param.d(i));
+        W{i} = sqrt(2/param.d(i)) * randn(param.d(i+1), param.d(i));
         b{i} = zeros(param.d(i+1), 1);
     end
     

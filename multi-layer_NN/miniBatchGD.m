@@ -19,24 +19,24 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
     X_val = valid_data{1}; Y_val = valid_data{2}; y_val = valid_data{3};
     
     % parameters for optimization algorithm
-    global GD2
-    n_batch = GD2.n_batch;
-    eta = GD2.lr;
-    n_epoch = GD2.n_epoch;
-    lambda = GD2.lambda;
-    ns = GD2.ns;    % stepsize
+    global OPT
+    n_batch = OPT.n_batch;
+    eta = OPT.lr;
+    n_epoch = OPT.n_epoch;
+    lambda = OPT.lambda;
+    ns = OPT.ns;    % stepsize
     n = size(X, 2);
     n_steps = n_epoch * n/n_batch;	% #update steps
      
     % cyclic learning rate
-    if GD2.cyclic
+    if OPT.cyclic
         % get learning rate array
         arr1 = linspace(0, 1, ns+1);
         arr2 = linspace(1, 0, ns+1);
         arr = [arr1(1:end-1), arr2(1:end-1)];
         etas = repmat(arr, [1, ceil(n_steps/2/ns)]);
         etas = etas(1:n_steps); % numel == n_steps
-        etas = etas * (GD2.lr_max - GD2.lr) + GD2.lr;
+        etas = etas * (OPT.lr_max - OPT.lr) + OPT.lr;
     end
     
     % save curve: loss, cost, acc
@@ -64,7 +64,7 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
             net = net.computeGradients(Xbatch, Ybatch, lambda);
  
             % get learning rate
-            if GD2.cyclic
+            if OPT.cyclic
                 idx = (i-1) * n/n_batch + j;
                 eta = etas(idx);
             end

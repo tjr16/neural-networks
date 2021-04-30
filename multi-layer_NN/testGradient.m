@@ -14,43 +14,66 @@ function testNoLambdaNoBN(testCase)
     lr = 1e-5;
     lam = 0;
     
+    % load data
     [trainX, trainY, ~] = loadBatch('data_batch_1.mat');
-    X = trainX(:, 1:10);
+    X = trainX(1:14, 1:10);    % use 14 features, 10 images
     Y = trainY(:, 1:10);
-
-    [W, b] = initParam();
-    nn = DoubleLayer(W, b);
-    nn = nn.computeGradients(X, Y, lam);
-    [grad_b, grad_W] = ComputeGradsNumSlow(X, Y, W, b, lam, lr, true);
-    numerical = {grad_b{1}, grad_b{2}, grad_W{1}, grad_W{2}};
-    analytical = {nn.grad_b{1}, nn.grad_b{2}, ...
-        nn.grad_W{1}(1:100), nn.grad_W{2}(1:100)};
     
-    for i = 1:4
+    global MLP
+    tmp = MLP;
+    MLP.d = [14, 13, 12, 11, 10];
+    [NetParams.W, NetParams.b] = initParam();
+    NetParams.use_bn = false;   % do not use gammas and betas
+    
+    % analytical gradient
+    nn = MultiLayer(NetParams.W, NetParams.b);
+    nn = nn.computeGradients(X, Y, lam);
+    analytical_W = nn.grad_W; 
+    analytical_b = nn.grad_b;
+    
+    % numerical gradient
+    grads = ComputeGradsNumSlow(X, Y, NetParams, lam, lr);
+      
+    for i = 1:numel(analytical_W)
         testCase.verifyTrue(...
-            relativeError(numerical{i}, analytical{i}) < 1e-7);
+            relativeError(analytical_W{i}, grads.W{i}) < 1e-7);
+        testCase.verifyTrue(...
+            relativeError(analytical_b{i}, grads.b{i}) < 1e-7); 
     end
-
+    
+    MLP = tmp;
 end
 
 function testLambdaNoBN(testCase)
     lr = 1e-5;
     lam = 0.1;
     
+    % load data
     [trainX, trainY, ~] = loadBatch('data_batch_1.mat');
-    X = trainX(:, 1:10);
+    X = trainX(1:14, 1:10);    % use 14 features, 10 images
     Y = trainY(:, 1:10);
-
-    [W, b] = initParam();
-    nn = DoubleLayer(W, b);
-    nn = nn.computeGradients(X, Y, lam);
-    [grad_b, grad_W] = ComputeGradsNumSlow(X, Y, W, b, lam, lr, true);
-    numerical = {grad_b{1}, grad_b{2}, grad_W{1}, grad_W{2}};
-    analytical = {nn.grad_b{1}, nn.grad_b{2}, ...
-        nn.grad_W{1}(1:100), nn.grad_W{2}(1:100)};
     
-    for i = 1:4
+    global MLP
+    tmp = MLP;
+    MLP.d = [14, 13, 12, 11, 10];
+    [NetParams.W, NetParams.b] = initParam();
+    NetParams.use_bn = false;   % do not use gammas and betas
+    
+    % analytical gradient
+    nn = MultiLayer(NetParams.W, NetParams.b);
+    nn = nn.computeGradients(X, Y, lam);
+    analytical_W = nn.grad_W; 
+    analytical_b = nn.grad_b;
+    
+    % numerical gradient
+    grads = ComputeGradsNumSlow(X, Y, NetParams, lam, lr);
+      
+    for i = 1:numel(analytical_W)
         testCase.verifyTrue(...
-            relativeError(numerical{i}, analytical{i}) < 1e-7);
+            relativeError(analytical_W{i}, grads.W{i}) < 1e-7);
+        testCase.verifyTrue(...
+            relativeError(analytical_b{i}, grads.b{i}) < 1e-7); 
     end
+    
+    MLP = tmp;
 end

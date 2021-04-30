@@ -27,11 +27,11 @@ function [train_data, valid_data, test_data] = loadData(large, valid_size)
         error('Invalid valid_size argument!');
     end
     
-    global NN2
+    global MLP
     if large  % #training data >= 40000
         train_size = 50000-valid_size;
-        trainX = zeros(NN2.d, train_size);
-        trainY = zeros(NN2.k, train_size);
+        trainX = zeros(MLP.d(1), train_size);
+        trainY = zeros(MLP.d(end), train_size);
         trainy = zeros(1, train_size);
         for i = 1: 4
             [loadX, loadY, loady] = loadBatch(sprintf('data_batch_%d.mat', i));
