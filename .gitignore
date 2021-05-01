@@ -1,5 +1,7 @@
-
-
+###
+*.jpg
+###
+s
 # Windows default autosave extension
 *.asv
 
