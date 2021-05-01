@@ -17,9 +17,14 @@ function [J, dummy] = ComputeCost(X, Y, params, lambda)
 
     W = params.W;
     b = params.b;
+    bn = params.use_bn;
     
     % run network and get output
-    net = MultiLayer(W, b);
+    net = MultiLayer(W, b, [], bn);
+    if bn
+        net = net.setBNParam(params.gammas, params.betas);
+    end
+    net = net.train();
     net = net.forward(X);
     P = net.output();   % k X batch_size
     

@@ -40,7 +40,9 @@ OPT.ns = 5 * 45000 / OPT.n_batch;	% 1 cycle = 2 * 5 epoch
 
 %% pre-experiments：without BN 
 % test gradient
-runtests('testGradient.m');
+for i = 1: 10
+    runtests('testGradient.m');
+end
 
 % test 2-layer network, test_acc = 52.8%
 % test 3-layer network, test_acc = 52.97%
