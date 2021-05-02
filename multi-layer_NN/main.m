@@ -117,7 +117,7 @@ legend(string(lam));
 title('Fine search: lambda'); xlabel('epoch');
 ylabel('acc_valid', 'Interpreter', 'none');
 OPT = tmp;
-% Summary: search range: 5e-4 ~ 3e-2, number of cycles: 2
+% Summary: search range: 1e-4 ~ 1e-2, number of cycles: 2
 % best lambda: 0.005932
 
 % train 3 cycles with best lamdba
@@ -276,7 +276,7 @@ for i = 1: n_sig
     hold on;
 end
 legend('sig=1e-1', 'sig=1e-3', 'sig=1e-4');
-xlabel('epoch'); ylabel('validation acc');
+xlabel('epoch'); ylabel('validation loss');
 title('loss, without BN');
 
 figure;
@@ -285,7 +285,7 @@ for i = 1: n_sig
     hold on;
 end
 legend('sig=1e-1', 'sig=1e-3', 'sig=1e-4');
-xlabel('epoch'); ylabel('validation acc');
+xlabel('epoch'); ylabel('validation loss');
 title('loss, with BN');
 
 figure;

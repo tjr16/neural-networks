@@ -1,5 +1,5 @@
 function tests = testGradient
-% Test function DoubleLayer.computeGradients
+% Test function MultiLayer.computeGradients
 
     tests = functiontests(localfunctions);
 end
