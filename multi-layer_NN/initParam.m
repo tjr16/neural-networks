@@ -1,9 +1,10 @@
-function [W, b] = initParam(param, dist)
+function [W, b] = initParam(param, dist, sig)
 % A function that initialize parameters.
 % ----------
 % Arguments:
 %   param: [struct] parameters of the network
 %   dist: [string] distribution (default: "He")
+%   sig: standard deviation of a normal distribution
 % Return:
 %   W: cell, 1 X n_layers
 %       W{i}: d_out X d_in
@@ -11,6 +12,9 @@ function [W, b] = initParam(param, dist)
 %       b{i}: d_out X 1
     
     global MLP
+    if nargin < 3
+        assert(~strcmp(dist, 'Normal'));
+    end
     if nargin < 2
         dist = 'He';
     end
@@ -23,6 +27,8 @@ function [W, b] = initParam(param, dist)
             coef = sqrt(2./param.d);
         case 'Xavier'
             coef = sqrt(1./param.d);
+        case 'Normal'
+            coef = sig .* ones(size(param.d));
         otherwise
             coef = ones(size(param.d));
     end

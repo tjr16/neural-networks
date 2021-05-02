@@ -16,6 +16,9 @@ MLP2.d = [3072, 50, 10];
 MLP3.d = [3072, 50, 50, 10];
 MLP9.d = [3072, 50, 30, 20, 20, 10, 10, 10, 10, 10];
 
+global BN
+BN.alpha = 0.7;
+
 %% optimization parameters
 % n_batch: batch size, 
 % lr: learning rate (it is minimum lr if cyclic),
@@ -44,8 +47,7 @@ for i = 1: 10
     runtests('testGradient.m');
 end
 
-% test 2-layer network, test_acc = 52.8%
-% test 3-layer network, test_acc = 52.97%
+% test 3-layer network, test_acc = 53.26%
 MLP = MLP3;
 [W, b] = initParam();
 nn = MultiLayer(W, b); nn = nn.train();
@@ -53,7 +55,7 @@ nn = MultiLayer(W, b); nn = nn.train();
 subplotMetrics(metrics);
 evaluate(nn_train, testB);
 
-% test 9-layer network, test_acc = 26.79%
+% test 9-layer network, test_acc = 45.58%
 MLP = MLP9;
 [W, b] = initParam();
 nn = MultiLayer(W, b); nn = nn.train();
@@ -61,304 +63,235 @@ nn = MultiLayer(W, b); nn = nn.train();
 subplotMetrics(metrics);
 evaluate(nn_train, testB);
 
-%% Search best hyper-parameters
-if RUN_SEARCH
-    [train_data, valid_data, ~] = loadData(true, 5000);
-    % --- coarse search ---
-    lam = logspace(-5, -1, 8);
-    tmp = OPT;
-    OPT.n_batch = 100; OPT.lr = 1e-5;
-    OPT.cyclic = true; OPT.lr_max = 1e-1;
-    OPT.ns = 2 * floor(45000/OPT.n_batch);  % stepsize <-> 2 epochs
-    OPT.n_epoch = 8;    % 2 cycles <-> 4 ns <-> 8 epochs
-    figure; % save validation acc as a figure
-    l_idx = 1;
-    for l = lam
-        OPT.lambda = l;
-        fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
-        [~, metrics] = miniBatchGD(train_data, valid_data, nn);
-        acc_val = metrics(end, :);
-        plot(1: numel(acc_val), acc_val);
-        hold on; 
-        l_idx = l_idx + 1;
-    end
-    legend(string(lam));
-    title('Coarse search: lambda'); xlabel('epoch'); 
-    ylabel('acc_valid', 'Interpreter', 'none');
-    OPT = tmp;
-    % Summary: search range: 1e-5 ~ 1e-1, number of cycles: 2
-    % 3 best: 0.00051795, 0.026827, 0.0019307; good range: 5e-4 ~ 3e-2
-    % --- fine search ---
-    lam = zeros(1, 10);
-    lmin = -4 + log10(5); lmax = -2 + log10(3);
-    for i = 1: 10
-        lam(i) = lmin + (lmax - lmin) * rand(1, 1);
-    end
-    lam = sort(10.^lam);
-    tmp = OPT;
-    OPT.n_batch = 100; OPT.lr = 1e-5;
-    OPT.cyclic = true; OPT.lr_max = 1e-1;
-    OPT.ns = 2 * floor(45000/OPT.n_batch);	% stepsize <-> 2 epochs
-    OPT.n_epoch = 16;	% 4 cycles <-> 8 ns <-> 16 epochs
-    figure;	% save validation acc as a figure
-    l_idx = 1;
-    for l = lam
-        OPT.lambda = l;
-        fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
-        [~, metrics] = miniBatchGD(train_data, valid_data, nn);
-        acc_val = metrics(end, :);
-        plot(1: numel(acc_val), acc_val);
-        hold on; 
-        l_idx = l_idx + 1;
-    end
-    legend(string(lam));
-    title('Fine search: lambda'); xlabel('epoch');
-    ylabel('acc_valid', 'Interpreter', 'none');
-    OPT = tmp;
-    % Summary: search range: 5e-4 ~ 3e-2, number of cycles: 4
-    % 3 best: 0.0021731, 0.0036329, 0.0011671; good range: 5e-4 ~ 3e-2
-end
-
-%% final test
-[train_data, valid_data, test_data] = loadData(true, 1000);
-tmp = OPT;
-OPT.n_batch = 100; OPT.lr = 1e-5;
-OPT.cyclic = true; OPT.lr_max = 1e-1;
-OPT.ns = 2 * floor(49000/OPT.n_batch);	% stepsize <-> 2 epochs
-OPT.n_epoch = 12;	% 3 cycles <-> 6 ns <-> 12 epochs
-OPT.lambda = 0.0021731;	% best lr
-
-[nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
-figure;
+%% 3-layer with Batch Normalization
+% test_acc = 53.40%
+MLP = MLP3;
+[W, b] = initParam();
+nn = MultiLayer(W, b, [], true); nn = nn.train();
+[nn_train, metrics] = miniBatchGD(trainB, validB, nn);
 subplotMetrics(metrics);
+evaluate(nn_train, testB);
 
-nn_eval = nn_trained.eval();
-nn_final = nn_eval.forward(test_data{1});
-P_final = nn_final.output();
-acc_final = computeAccuracy(P_final, test_data{3});
-fprintf("Accuracy on test set: %f\n", acc_final);
-
-OPT = tmp;
-% Summary: test accuracy, 52.83%
-
-
-%% performance optimization
-
-%% 1. add more hidden nodes
-tmpNN = NN2; tmpGD = OPT;
-NN2.m = 100;    % TODO: set #nodes here
-OPT.n_batch = 100; OPT.lr = 1e-5;
-OPT.cyclic = true; OPT.lr_max = 1e-1;
-OPT.ns = 2 * floor(45000/OPT.n_batch);  % stepsize <-> 2 epochs
-OPT.n_epoch = 8;    % 2 cycles <-> 4 ns <-> 8 epochs
-% init network
-[W1, b1] = initParam();
-nn1 = DoubleLayer(W1, b1);
-% search for proper regularization
-[train_data, valid_data, ~] = loadData(true, 5000);
-lam = logspace(-5, -1, 8);
+% coarse search
+lam = logspace(-7, 0, 8);
+tmp = OPT;
 figure; % save validation acc as a figure
 l_idx = 1;
 for l = lam
     OPT.lambda = l;
     fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
-    [~, metrics] = miniBatchGD(train_data, valid_data, nn1);
+    [~, metrics] = miniBatchGD(trainB, validB, nn);
     acc_val = metrics(end, :);
     plot(1: numel(acc_val), acc_val);
-    hold on;
+    hold on; 
     l_idx = l_idx + 1;
 end
 legend(string(lam));
-title('Search for lambda: more hidden nodes'); xlabel('epoch'); 
+title('Coarse search: lambda'); xlabel('epoch'); 
 ylabel('acc_valid', 'Interpreter', 'none');
-
-% good lr value: 3.7276e-5 (100 nodes)
-%                1.9307e-3 (150 nodes)
-
-% final test
-OPT.ns = 2 * floor(49000/OPT.n_batch);	% stepsize <-> 2 epochs
-OPT.n_epoch = 12;	% 3 cycles <-> 6 ns <-> 12 epochs
-OPT.lambda = 3.7276e-5;  % TODO: set best lr here
-[train_data, valid_data, test_data] = loadData(true, 1000);
-[nn_trained1, metrics] = miniBatchGD(train_data, valid_data, nn1);
-figure;
-plotMetrics(metrics);
-nn_final = nn_trained1.forward(test_data{1});
-P_final = nn_final.output();
-acc_final = computeAccuracy(P_final, test_data{3});
-fprintf("Accuracy on test set: %f\n", acc_final);
-NN2 = tmpNN; OPT = tmpGD;
-
-% Summary: test accuracy, 53.05% (100 nodes)
-%                         54.84% (150 nodes)
-
-%% 2. ensemble learning for several networks
-n_model = 3;
-nns = cell(1, n_model);   % NN cell
-Ws = cell(4, n_model);    % param cells
-bs = cell(4, n_model);
-metrics = cell(1, n_model);   % metrics cell
-[train_data, valid_data, test_data] = loadData(true, 1000);
-tmp = OPT;
-OPT.n_batch = 100; OPT.lr = 1e-5;
-OPT.cyclic = true; OPT.lr_max = 1e-1;
-OPT.ns = 2 * floor(49000/OPT.n_batch);	% stepsize <-> 2 epochs
-OPT.n_epoch = 4;	% 1 cycle = 4 epochs
-OPT.lambda = 0.0021731;	% best lr
-
-for i = 1:n_model	% each model
-    fprintf('Model: %d\n', i);
-    [Ws{1, i}, b{1, i}] = initParam();
-    nns{i} = DoubleLayer(Ws{1, i}, b{1, i});
-    for j = 1:3 % each cycle: save model parameters
-        [nns{i}, metrics_] = miniBatchGD(train_data, valid_data, nns{i});
-        metrics{i} = [metrics{i}, metrics_];
-        Ws{j+1, i} = nns{i}.W;
-        bs{j+1, i} = nns{i}.b;        
-    end
-end
-% plot metrics of each model
-for i = 1:n_model
-    figure(i*1000); % distinguish different figures
-	subplotMetrics(metrics{i});
-end
-% ensemble
-accs = ensemble(nns, test_data);
-for i = 1: n_model
-    fprintf("Test accuracy, model %d: %f\n", i, accs{i});
-end
-fprintf("Test accuracy, ensemble model: %f\n", accs{end});
 OPT = tmp;
-% Summary:
-% Test accuracy, model 1: 0.523900
-% Test accuracy, model 2: 0.523300
-% Test accuracy, model 3: 0.527400
-% Test accuracy, ensemble model: 0.532600
+% Summary: search range: 1e-7 ~ 1e0, number of cycles: 2
+% good range: 1e-4 ~ 1e-2
 
-%% 3. ensemble learning for several cycles
-n_cycle = 10;
-nns = cell(1, n_cycle+1);   % NN cell
-metrics = cell(1, n_cycle);   % metrics cell
-[train_data, valid_data, test_data] = loadData(true, 1000);
+% fine search
+lam = zeros(1, 10);
+lmin = -4; lmax = -2;
+for i = 1: 10
+    lam(i) = lmin + (lmax - lmin) * rand(1, 1);
+end
+lam = sort(10.^lam);
+
 tmp = OPT;
-OPT.n_batch = 100; OPT.lr = 1e-5;
-OPT.cyclic = true; OPT.lr_max = 1e-1;
-OPT.ns = 2 * floor(49000/OPT.n_batch);	% stepsize <-> 2 epochs
-OPT.n_epoch = 4;	% 1 cycle = 4 epochs
-OPT.lambda = 0.0021731;	% best lr
-
-all_metrics = zeros(6, n_cycle * OPT.n_epoch);
-[W, b] = initParam();
-nns{1} = DoubleLayer(W, b);
-
-% each cycle: save model
-for i = 1:n_cycle 
-    [nns{i+1}, metrics{i}] = miniBatchGD(train_data, valid_data, nns{i});
-    all_metrics(:, 1 + OPT.n_epoch * (i-1): OPT.n_epoch * i) = metrics{i};
+figure;	% save validation acc as a figure
+l_idx = 1;
+for l = lam
+    OPT.lambda = l;
+    fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
+    [~, metrics] = miniBatchGD(trainB, validB, nn);
+    acc_val = metrics(end, :);
+    plot(1: numel(acc_val), acc_val);
+    hold on; 
+    l_idx = l_idx + 1;
 end
-
-% plot metrics
-subplotMetrics(all_metrics);
-
-% ensemble
-accs = ensemble(nns(2:end), test_data);
-for i = 1: n_cycle 
-    fprintf("Test accuracy, model %d: %f\n", i, accs{i});
-end
-fprintf("Test accuracy, ensemble model: %f\n", accs{end});
+legend(string(lam));
+title('Fine search: lambda'); xlabel('epoch');
+ylabel('acc_valid', 'Interpreter', 'none');
 OPT = tmp;
+% Summary: search range: 5e-4 ~ 3e-2, number of cycles: 2
+% best lambda: 0.005932
 
-%% 4. dropout
-dropout = 0.5;
-[train_data, valid_data, test_data] = loadData(true, 1000);
-
-% config
-tmpNN = NN2; tmpGD = OPT;
-NN2.m = 100;    % TODO: set #nodes here
-OPT.n_batch = 100; OPT.lr = 1e-5;
-OPT.cyclic = true; OPT.lr_max = 1e-1;
-OPT.ns = 2 * floor(49000/OPT.n_batch);  % stepsize <-> 2 epochs
-OPT.n_epoch = 40;    % 4 epochs for 1 cycle
-OPT.lambda = 0;
-
-% init network
+% train 3 cycles with best lamdba
+tmp = OPT;
+OPT.n_epoch = 30;
+OPT.lambda = 0.005932;
 [W, b] = initParam();
-nn = DoubleLayer(W, b, dropout);
-
-% train
-[nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
-
-% evaluate
-figure;
+nn = MultiLayer(W, b, [], true); nn = nn.train();
+[nn_train, metrics] = miniBatchGD(trainB, validB, nn);
 subplotMetrics(metrics);
+evaluate(nn_train, testB);
+OPT = tmp;
+% Summary: test_acc = 53.32% (a little bit worse)
 
-nn_eval = nn_trained.eval();
-[nn_final, ~] = nn_eval.forward(test_data{1});
-P_final = nn_final.output();
-acc_final = computeAccuracy(P_final, test_data{3});
-fprintf("Accuracy on test set: %f\n", acc_final);
-
-NN2 = tmpNN; OPT = tmpGD;
-
-% 10 cycles: 51.77%
-
-%% 5.learning rate range test
-[train_data, valid_data, test_data] = loadData(true, 5000);
-% stepsize = 8 epochs = 8 * 450 iterations
+% train 3 cycles with best lamdba
 tmp = OPT;
-OPT.n_batch = 100; 
-OPT.cyclic = true; 
-OPT.n_epoch = 8;
-OPT.ns = OPT.n_epoch * floor(45000/OPT.n_batch);  % ns == #update_steps
-OPT.lambda = 0.0021731;	% best lr
-
-% lr range test
-OPT.lr = 1e-9; OPT.lr_max = 1e0;
+OPT.n_epoch = 30;
+OPT.lambda = 0.005932;
 [W, b] = initParam();
-nn = DoubleLayer(W, b);
-% really time consuming
-[etas, acc, acc_val] = lrRangeTest(train_data, valid_data, nn);
-
-% log plot
-figure;
-semilogx(etas,acc,etas,acc_val)
-grid on
-xlabel('log(learning rate)');
-ylabel('accuracy');
-legend('training', 'validation');
-
-% log plot, only valid
-figure;
-semilogx(etas,acc_val)
-grid on
-xlabel('log(learning rate)');
-ylabel('valid accuracy');
-
-% linear plot
-figure;
-plot(etas, acc_val);
-xlabel('eta');
-ylabel('validation accuracy');
-
-OPT = tmp;
-
-%% final test for 5.
-[train_data, valid_data, test_data] = loadData(true, 1000);
-tmp = OPT;
-OPT.n_batch = 100; OPT.lr = 5e-4;
-OPT.cyclic = true; OPT.lr_max = 2e-2;
-OPT.ns = 2 * floor(49000/OPT.n_batch);	% stepsize <-> 2 epochs
-OPT.n_epoch = 20;	% 3 cycles <-> 6 ns <-> 12 epochs
-OPT.lambda = 0.0021731;	% best lr
-
-[nn_trained, metrics] = miniBatchGD(train_data, valid_data, nn);
-figure;
+nn = MultiLayer(W, b, [], true); nn = nn.train();
+[nn_train, metrics] = miniBatchGD(trainB, validB, nn);
 subplotMetrics(metrics);
-
-nn_eval = nn_trained.eval();
-nn_final = nn_eval.forward(test_data{1});
-P_final = nn_final.output();
-acc_final = computeAccuracy(P_final, test_data{3});
-fprintf("Accuracy on test set: %f\n", acc_final);
-
+evaluate(nn_train, testB);
 OPT = tmp;
+% Summary: test_acc = 53.32% (a little bit worse)
+
+%% 9-layer with Batch Normalization 
+% test_acc = 52.26% (big improvement)
+MLP = MLP9;
+[W, b] = initParam();
+nn = MultiLayer(W, b, [], true); nn = nn.train();
+[nn_train, metrics] = miniBatchGD(trainB, validB, nn);
+subplotMetrics(metrics);
+evaluate(nn_train, testB);
+
+% coarse search
+lam = logspace(-7, 0, 8);
+tmp = OPT;
+figure; % save validation acc as a figure
+l_idx = 1;
+for l = lam
+    OPT.lambda = l;
+    fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
+    [~, metrics] = miniBatchGD(trainB, validB, nn);
+    acc_val = metrics(end, :);
+    plot(1: numel(acc_val), acc_val);
+    hold on; 
+    l_idx = l_idx + 1;
+end
+legend(string(lam));
+title('Coarse search: lambda'); xlabel('epoch'); 
+ylabel('acc_valid', 'Interpreter', 'none');
+OPT = tmp;
+% Summary: search range: 1e-7 ~ 1e0, number of cycles: 2
+% good range: 1e-5 ~ 1e-2
+
+% fine search
+lam = zeros(1, 10);
+lmin = -5; lmax = -2;
+for i = 1: 10
+    lam(i) = lmin + (lmax - lmin) * rand(1, 1);
+end
+lam = sort(10.^lam);
+
+tmp = OPT;
+figure;	% save validation acc as a figure
+l_idx = 1;
+for l = lam
+    OPT.lambda = l;
+    fprintf('%d, lambda=%f\n--------------\n', l_idx, l);
+    [~, metrics] = miniBatchGD(trainB, validB, nn);
+    acc_val = metrics(end, :);
+    plot(1: numel(acc_val), acc_val);
+    hold on; 
+    l_idx = l_idx + 1;
+end
+legend(string(lam));
+title('Fine search: lambda'); xlabel('epoch');
+ylabel('acc_valid', 'Interpreter', 'none');
+OPT = tmp;
+% Summary: search range: 5e-4 ~ 3e-2, number of cycles: 2
+% best lambda: 0.0015782 (0.0002832 maybe noise)
+
+% train 3 cycles with the same lambda as 3-layer net
+tmp = OPT;
+OPT.n_epoch = 30;
+OPT.lambda = 0.005932;
+[W, b] = initParam();
+nn = MultiLayer(W, b, [], true); nn = nn.train();
+[nn_train, metrics] = miniBatchGD(trainB, validB, nn);
+subplotMetrics(metrics);
+evaluate(nn_train, testB);
+OPT = tmp;
+% Summary: test_acc = 52.46% (a little bit better)
+
+%% Sensitivity to initialization
+
+MLP = MLP3;
+% generate parameters
+sigs = [1e-1, 1e-3, 1e-4];
+n_sig = numel(sigs);
+Ws = cell(n_sig, 1);
+bs = cell(n_sig, 1);
+for i = 1: n_sig
+    [Ws{i}, bs{i}] = initParam(MLP3, 'Normal', sigs(i));
+end
+
+test_acc = zeros(n_sig, 1);
+test_acc_bn = zeros(n_sig, 1);
+
+loss_train = cell(n_sig, 1);
+loss_valid = cell(n_sig, 1);
+loss_train_bn = cell(n_sig, 1);
+loss_valid_bn = cell(n_sig, 1);
+
+for i = 1: n_sig
+    nn1 = MultiLayer(Ws{i}, bs{i}); nn1 = nn1.train();
+    [nn_train1, metrics] = miniBatchGD(trainB, validB, nn1);
+    loss_train{i} = metrics(1, :);
+    loss_valid{i} = metrics(2, :);
+    test_acc(i) = evaluate(nn_train1, testB);
+    
+    nn2 = MultiLayer(Ws{i}, bs{i}, [], true); nn2 = nn2.train();
+    [nn_train2, metrics] = miniBatchGD(trainB, validB, nn2);
+    loss_train_bn{i} = metrics(1, :);
+    loss_valid_bn{i} = metrics(2, :);
+    test_acc_bn(i) = evaluate(nn_train2, testB);
+end
+
+% loss plots
+% figure;
+% for i = 1: n_sig
+%     plot(loss_train{i});
+%     hold on;
+%     plot(loss_valid{i});
+% end
+% legend('sig=1e-1, train', 'sig=1e-1, valid', ...
+%     'sig=1e-3, train', 'sig=1e-3, valid', ...
+%     'sig=1e-4, train', 'sig=1e-4, valid');
+% title('loss, without BN');
+% 
+% figure;
+% for i = 1: n_sig
+%     plot(loss_train_bn{i});
+%     hold on;
+%     plot(loss_valid_bn{i});
+% end
+% legend('sig=1e-1, train', 'sig=1e-1, valid', ...
+%     'sig=1e-3, train', 'sig=1e-3, valid', ...
+%     'sig=1e-4, train', 'sig=1e-4, valid');
+% title('loss, with BN');
+
+figure;
+for i = 1: n_sig
+    plot(loss_valid{i});
+    hold on;
+end
+legend('sig=1e-1', 'sig=1e-3', 'sig=1e-4');
+xlabel('epoch'); ylabel('validation acc');
+title('loss, without BN');
+
+figure;
+for i = 1: n_sig
+    plot(loss_valid_bn{i});
+    hold on;
+end
+legend('sig=1e-1', 'sig=1e-3', 'sig=1e-4');
+xlabel('epoch'); ylabel('validation acc');
+title('loss, with BN');
+
+figure;
+semilogx(sigs, test_acc);
+hold on;
+semilogx(sigs, test_acc_bn);
+legend('without BN', 'with BN');
+title('test accuracy');
+

@@ -73,7 +73,7 @@ function testLambdaNoBN(testCase)
         testCase.verifyTrue(...
             relativeError(analytical_W{i}, grads.W{i}) < 1e-6);
         testCase.verifyTrue(...
-            relativeError(analytical_b{i}, grads.b{i}) < 1e-6); 
+            relativeError(analytical_b{i}, grads.b{i}) < 1e-5);   % conservative
     end
     
     MLP = tmp;

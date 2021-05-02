@@ -14,6 +14,8 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
 %   metrics: [loss_train; loss_valid; cost_train; cost_valid;
 %       acc_train; acc_valid]   (6 X n_epoch)
 
+    net.eval_mode = false;
+    
     % read data
     X = train_data{1}; Y = train_data{2}; y = train_data{3};
     X_val = valid_data{1}; Y_val = valid_data{2}; y_val = valid_data{3};
@@ -69,11 +71,25 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
                 eta = etas(idx);
             end
             
-            % update network parameters
-            net.W{1} = net.W{1} - eta * net.grad_W{1};
-            net.W{2} = net.W{2} - eta * net.grad_W{2};
-            net.b{1} = net.b{1} - eta * net.grad_b{1};
-            net.b{2} = net.b{2} - eta * net.grad_b{2};
+            % update network parameters: W & b
+            for k = 1: net.n_layers
+                net.W{k} = net.W{k} - eta * net.grad_W{k};
+                net.b{k} = net.b{k} - eta * net.grad_b{k};
+            end
+            
+            % update network parameters: gamma & beta
+            if net.bn_mode
+                [gamma, beta] = net.getBNParam();
+                [grad_g, grad_b] = net.getBNGrad();
+
+                for k = 1: net.n_layers - 1
+                    gamma{k} = gamma{k} - eta * grad_g{k};
+                    beta{k} = beta{k} - eta * grad_b{k};
+                end
+
+                net = net.setBNParam(gamma, beta);
+            end
+
         end
         
         % --- evaluation ---

@@ -1,4 +1,4 @@
-function evaluate(net, testData)
+function acc_final = evaluate(net, testData)
 % A function that evaluates a trained network on test set.
 % ----------
 % Argument:
@@ -10,6 +10,8 @@ function evaluate(net, testData)
 %           uint8, {0, 1}
 %       y: 1 X n (1 X 10000)
 %           uint8, {1, 2, ..., 10}
+% Return:
+%   acc_final: final accuracy on test set
 
     nn_eval = net.eval();
     nn_final = nn_eval.forward(testData{1});

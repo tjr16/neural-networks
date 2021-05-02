@@ -4,7 +4,7 @@ classdef MultiLayer
     %% === PROPERTIES ===
     properties
         n_layers  % #layers
-        % param
+        % parameter
         W         % weights, cell 1 X n_layers
         b         % bias, cell 1 X n_layers
         % forward

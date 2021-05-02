@@ -3,8 +3,8 @@ classdef BatchNormLayer
 
     %% === PROPERTIES ===
     properties
-        % parameter
         l_size    % layer size
+        % parameter  
         gamma
         beta
         % distribution
@@ -12,6 +12,7 @@ classdef BatchNormLayer
         var_val
         mean_av   % average value from exponential moving average
         var_av
+        av_init   % [bool] flag: mean_av and var_av initialized
         % forward: intermediary values
         s      % input bn layer
         s_hat  % after normalization
@@ -32,16 +33,27 @@ classdef BatchNormLayer
             obj.l_size = ls;
             obj.gamma = ones(ls, 1);
             obj.beta = zeros(ls, 1);
+            obj.av_init = false;
         end
         
         function obj = forward(obj, s, eval)
+            global BN
             if eval  % evaluate: use empirical value
+                assert(obj.av_init);
                 mu = obj.mean_av;
                 sigma2 = obj.var_av;
             else  % train: get value from data
                 [obj.mean_val, obj.var_val] = BatchNormLayer.getNormal(s);
                 mu = obj.mean_val;
                 sigma2 = obj.var_val;
+                if obj.av_init
+                    obj.mean_av = BN.alpha * obj.mean_av + (1 - BN.alpha) * mu;
+                    obj.var_av = BN.alpha * obj.var_av + (1 - BN.alpha) * sigma2;
+                else
+                    obj.mean_av = mu;
+                    obj.var_av = sigma2;
+                    obj.av_init = true;
+                end
             end
             obj.s = s;
             obj.s_hat = BatchNormLayer.batchNormalize(s, mu, sigma2);
@@ -70,6 +82,7 @@ classdef BatchNormLayer
 
     end
     
+    %% === STATIC METHODS ===
     methods(Static)
 
         function [mu, sigma2] = getNormal(X)
