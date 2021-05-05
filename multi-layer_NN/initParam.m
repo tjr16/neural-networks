@@ -11,16 +11,17 @@ function [W, b] = initParam(param, dist, sig)
 %   b: cell, 1 X n_layers
 %       b{i}: d_out X 1
     
-    global MLP
-    if nargin < 3
-        assert(~strcmp(dist, 'Normal'));
-    end
+    global MLP    
     if nargin < 2
         dist = 'He';
     end
     if nargin < 1     
         param = MLP;
     end
+    if nargin < 3
+        assert(~strcmp(dist, 'Normal'));
+    end
+
     
     switch dist
         case 'He'
