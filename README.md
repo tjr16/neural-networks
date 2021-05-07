@@ -10,7 +10,7 @@ Loss function: cross entropy for softmax; SVM multi-class
 
 Regularization: L2
 
-More options: eg. learning rate decay, Xavier initialization
+New features: eg. learning rate decay, Xavier initialization
 
 Test accuracy (highest): 40.66%
 
@@ -20,10 +20,24 @@ Dataset: cifar-10
 
 Optimization method: mini batch gradient descent
 
-Loss function: cross entropy for softmax
+Loss function: cross entropy
 
 Regularization: L2
 
-More options: eg. cyclical learning rate, ensemble learning, dropout
+New features: eg. cyclical learning rate, ensemble learning, dropout
 
 Test accuracy (highest): 54.84%
+
+## multi-layer neural network
+
+Dataset: cifar-10
+
+Optimization method: mini batch gradient descent
+
+Loss function: cross entropy
+
+Regularization: L2
+
+New features: eg. batch normalization, He initialization, data augmentation
+
+Test accuracy (highest): 58.66%
