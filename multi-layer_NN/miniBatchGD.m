@@ -1,4 +1,4 @@
-function [net, metrics] = miniBatchGD(train_data, valid_data, net)
+function [net, metrics] = miniBatchGD(train_data, valid_data, net, augment)
 % A function that performs mini-batch gradient descent.
 % ----------
 % Arguments:
@@ -9,11 +9,16 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
 %       y: 1 X n
 %   valid_data: cell 1 X 3
 %   net: network to be trained
+%   augment: [bool] use data augmentation
 % Return:
 %   net: trained network
 %   metrics: [loss_train; loss_valid; cost_train; cost_valid;
 %       acc_train; acc_valid]   (6 X n_epoch)
 
+    if nargin < 4 || isempty(augment)
+        augment = false;
+    end
+    
     net.eval_mode = false;
     
     % read data
@@ -61,6 +66,10 @@ function [net, metrics] = miniBatchGD(train_data, valid_data, net)
             indices = random_idx(j_start:j_end);
             Xbatch = X(:, indices);
             Ybatch = Y(:, indices);
+            
+            if augment
+                Xbatch = randomAugmentation(Xbatch);
+            end
             
             % run network and compute gradients
             net = net.computeGradients(Xbatch, Ybatch, lambda);

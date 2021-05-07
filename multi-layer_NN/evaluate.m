@@ -17,5 +17,5 @@ function acc_final = evaluate(net, testData)
     nn_final = nn_eval.forward(testData{1});
     P_final = nn_final.output();
     acc_final = computeAccuracy(P_final, testData{3});
-    fprintf("Accuracy on test set: %f\n", acc_final);
+    fprintf("Accuracy: %f\n", acc_final);
 end
