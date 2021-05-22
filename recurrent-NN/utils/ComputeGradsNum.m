@@ -1,6 +1,8 @@
 function num_grads = ComputeGradsNum(X, Y, RNN, h)
+% modified by J.T.
 
-for f = fieldnames(RNN)'
+% for f = fieldnames(RNN)'
+for f = {'W', 'V', 'U', 'b', 'c'}
     disp('Computing numerical gradient for')
     disp(['Field name: ' f{1} ]);
     num_grads.(f{1}) = ComputeGradNumSlow(X, Y, f{1}, RNN, h);

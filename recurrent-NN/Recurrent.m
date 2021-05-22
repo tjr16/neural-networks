@@ -21,6 +21,8 @@ classdef Recurrent
         seq_len
         % grad
         grad  % fieldnames: O, A, W, U, V, b, c
+        % other
+        field_names   % only names of parameters
     end
 
     methods
@@ -35,13 +37,9 @@ classdef Recurrent
             obj.m = param.m;
             obj.k = param.k;
             obj.seq_len = param.seq_len;
+            obj.field_names = param.field_names;
             
-            obj.H = [];
-%             n = obj.seq_len;
-%             obj.H = cell(n,1);
-%             obj.A = cell(n,1);
-%             obj.O = cell(n,1);
-%             obj.P = cell(n,1); 
+            obj.H = [];  % h0 set to 0 if H empty
         end
 
         function obj = initHidden(obj)            
@@ -50,6 +48,12 @@ classdef Recurrent
             else
                 obj.h0 = obj.H(:, end);
             end
+        end
+        
+        function obj = clearHidden(obj)
+            % Clear hidden state for next epoch
+            obj.H = [];
+            obj.h0 = zeros(obj.m, 1);
         end
         
         function obj = forward(obj, X)
@@ -77,6 +81,9 @@ classdef Recurrent
         end
         
         function obj = computeGradients(obj, X, Y)
+            % Init hidden state to zero or last state;
+            % Forward propagation;
+            % Backward propagation
               
             obj = obj.forward(X);
             
@@ -101,10 +108,18 @@ classdef Recurrent
             obj.grad.c = obj.grad.O' * ones(obj.seq_len, 1);   
         end
         
-%         function out = output(obj)
-%             % NOTE: input and output are onehot vectors
-%             out = obj.X(2: end-1);
-%         end
+        function obj = clipGradients(obj)
+            % Clip gradients
+            
+            for f = obj.field_names
+                obj.grad.(f{1}) = max(min(obj.grad.(f{1}), 5), -5);
+            end
+        end
+        
+        function out = output(obj)
+            % NOTE: input and output are onehot vectors
+            out = obj.P;
+        end
         
     end
 end

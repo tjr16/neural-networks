@@ -1,5 +1,5 @@
 function loss = crossEntropy(P, Y)
-% This function computes cross entropy loss.
+% This function computes cross entropy loss for RNN.
 % ----------
 % Arguments:
 %   P: output of the network
@@ -19,6 +19,6 @@ function loss = crossEntropy(P, Y)
     else
         py = sum(Y .* P, 1);     
     end
-    loss = mean(-log(py));
+    loss = sum(-log(py));
 
 end

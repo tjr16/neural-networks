@@ -10,38 +10,41 @@ function err = relativeError(Ga, Gn)
     err = mean(abs_err ./ max(eps, abs(Ga) + abs(Gn)), 'all');
 end
 
-function testNoLambdaNoBN(testCase)
+function testGrad(testCase)
     lr = 1e-4;
-
     
     % load data 
-    global RNN
+    global RNN 
     tmp = RNN;
     RNN.m = 5;
+    RNN.b = zeros(RNN.m, 1);    % (a) bias vector
+    RNN.c = zeros(RNN.k, 1);    % (b) bias vector
+
+    RNN.sig = 0.01;  % initial param var
+    RNN.U = randn(RNN.m, RNN.k) * RNN.sig ;  % (a) input weight
+    RNN.W = randn(RNN.m, RNN.m) * RNN.sig ;  % (a) hidden weight
+    RNN.V = randn(RNN.k, RNN.m) * RNN.sig ;  % (b) hidden weight
+
+    RNN.seq_len = 25;
     
-    load('info/cell_data.mat', 'vec_X', 'vec_Y');
+    load('info/vec_data.mat', 'vec_X', 'vec_Y');
     X_chars = vec_X(:, 1:RNN.seq_len);
     Y_chars = vec_Y(:, 1:RNN.seq_len);
  
     % analytical gradient
     nn = Recurrent(RNN);
     nn = nn.computeGradients(X_chars, Y_chars);
-    analytical_grad = nn.grad;
+    field_names = {'W', 'V', 'U', 'b', 'c'};
+    g_analytical = nn.grad;
      
     % numerical gradient
-    grads = ComputeGradsNum(X, Y, NetParams, lam, lr);
-      
-    for f = fieldnames(RNN)'
-        0
-    end
+    g_numerical = ComputeGradsNum(X_chars, Y_chars, RNN, lr);
 
-    for i = 1:numel()
-        testCase.verifyTrue(...
-            relativeError(analytical_W{i}, grads.W{i}) < 1e-6);
-        testCase.verifyTrue(...
-            relativeError(analytical_b{i}, grads.b{i}) < 1e-6); 
+    for f = field_names
+        err = relativeError(g_analytical.(f{1}), g_numerical.(f{1}));
+        testCase.verifyTrue(err < 8.54e-6);
     end
-    
+  
     RNN = tmp;
 end
 
