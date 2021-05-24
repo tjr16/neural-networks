@@ -1,4 +1,4 @@
-function [net, smooth_loss] = adaGrad(X_vec, Y_vec, net)
+function [net, smooth_loss, MIN] = adaGrad(X_vec, Y_vec, net)
 % A function that performs AdaGrad for RNN.
 % ----------
 % Arguments:
@@ -8,10 +8,11 @@ function [net, smooth_loss] = adaGrad(X_vec, Y_vec, net)
 % Return:
 %   net: trained network
 %   smooth_loss: loss curve, n_step X 1
+%   MIN: information of minimum smooth loss
 
     % debug settings: print info every *** step
-    PRINT_LOSS = 100;
-    PRINT_TEXT = 500;
+    PRINT_LOSS = 500;
+    PRINT_TEXT = 2000;
     
     % parameters for optimization algorithm
     global ADA RNN
@@ -27,6 +28,11 @@ function [net, smooth_loss] = adaGrad(X_vec, Y_vec, net)
         par = k{1};
         G.(par) = zeros(size(net.(par)));
     end
+    
+    % save min values
+    MIN.loss = 1e8;
+    MIN.iter = 1;
+    % MIN.model
 
     % --- epoch loop ---
     for i = 1: n_epoch
@@ -35,6 +41,8 @@ function [net, smooth_loss] = adaGrad(X_vec, Y_vec, net)
         
         % --- sequence loop ---
         for j = 1: n_seq
+            
+            h0 = net.h0;  % save h0 for synthesis
             
             iter = (i-1) * n_seq + j;  % index: iteration (step)
             
@@ -47,31 +55,41 @@ function [net, smooth_loss] = adaGrad(X_vec, Y_vec, net)
             P = net.output();
             
             % AdaGrad optimization
+            net = net.clipGradients();  % clip grad
             for k = RNN.field_names
                 par = k{1};  % string
                 g = net.grad.(par);
-                G.(par) = G.(par) + g .* g;
-                net.(par) = net.(par) - lr ./sqrt(G.(par) + eps) .* g;
+                G.(par) = G.(par) + g .^ 2;
+                net.(par) = net.(par) - lr * g ./sqrt(G.(par) + eps);
             end
             
             % compute loss and smooth_loss     
             loss = crossEntropy(P, Y);
             
             if iter == 1
-                smooth_loss = loss;
+                smooth_loss(iter) = loss;
             else          
                 smooth_loss(iter) = 0.999 * smooth_loss(iter-1) + 0.001 * loss;
             end
             
-            % print smooth_loss every 100 steps
+            if (smooth_loss(iter) < MIN.loss) && (smooth_loss(iter) < 55)
+                MIN.loss = smooth_loss(iter);
+                MIN.iter = iter;
+                MIN.model = net;
+            end
+            
+            % print smooth_loss every PRINT_LOSS steps
             if ~mod(iter, PRINT_LOSS)
                 fprintf("Step %d, smooth loss: %f\n", iter, smooth_loss(iter));
             end
             
-            % synthesize text (200 chars) every 500 steps
-            if ~mod(iter, PRINT_TEXT)
+            % synthesize text (200 chars) every PRINT_TEXT steps
+            if (iter == 1) || (~mod(iter, PRINT_TEXT))
+                disp('--------');
                 fprintf("Step %d\n", iter);
-                % TODO: 
+                text = net.synthesize(X(:, 1), h0);
+                disp(text);
+                disp('--------');
             end
      
         end

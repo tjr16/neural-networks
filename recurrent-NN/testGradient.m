@@ -42,7 +42,7 @@ function testGrad(testCase)
 
     for f = field_names
         err = relativeError(g_analytical.(f{1}), g_numerical.(f{1}));
-        testCase.verifyTrue(err < 8.54e-6);
+        testCase.verifyTrue(err < 5e-6);
     end
   
     RNN = tmp;

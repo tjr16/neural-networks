@@ -1,5 +1,5 @@
 classdef Recurrent
-% A text version of recurrent neural network.
+% Recurrent neural network.
 
     properties
         % parameters
@@ -19,6 +19,7 @@ classdef Recurrent
         m
         k
         seq_len
+        syn_len
         % grad
         grad  % fieldnames: O, A, W, U, V, b, c
         % other
@@ -37,6 +38,7 @@ classdef Recurrent
             obj.m = param.m;
             obj.k = param.k;
             obj.seq_len = param.seq_len;
+            obj.syn_len = param.syn_len;
             obj.field_names = param.field_names;
             
             obj.H = [];  % h0 set to 0 if H empty
@@ -119,6 +121,64 @@ classdef Recurrent
         function out = output(obj)
             % NOTE: input and output are onehot vectors
             out = obj.P;
+        end
+        
+        function text = synthesize(obj, x0, h0, n_syn)
+            % NOTE: Recurrent is a value class so this function
+            %       does not effect the network when training.
+            % --------------
+            % x0: k X 1, first input char
+            % h0: k X 1, first hidden state
+            % n_syn: synthesis length
+            
+            if nargin < 4 || isempty(n_syn)
+                n_syn = obj.syn_len;
+            end
+            
+            if nargin < 3 || isempty(h0)
+                h0 = zeros(obj.m, 1);
+            end
+            
+            global DICT
+            y_char = cell(1, n_syn);
+            obj.h0 = h0;
+            
+            obj.H = zeros(obj.m, n_syn);
+            obj.A = zeros(obj.m, n_syn);
+            obj.O = zeros(obj.k, n_syn);
+            obj.P = zeros(obj.k, n_syn);
+            obj.X = zeros(obj.k, n_syn + 1);
+            obj.X(:, 1) = x0;
+            
+            obj.A(:, 1) = obj.W * obj.h0 + obj.U * obj.X(:, 1) + obj.b;
+            obj.H(:, 1) = tanh(obj.A(:, 1));
+            obj.O(:, 1) = obj.V * obj.H(:, 1) + obj.c;
+            obj.P(:, 1) = softmax(obj.O(:, 1));
+            % get char
+            [~, y_int] = max(obj.P(:, 1));
+            y_char{1} = DICT.int2char(y_int);
+                
+            for t = 2: n_syn
+                obj.A(:, t) = obj.W * obj.H(:, t-1) + obj.U * obj.X(:, t) + obj.b;
+                obj.H(:, t) = tanh(obj.A(:, t));
+                obj.O(:, t) = obj.V * obj.H(:, t) + obj.c;
+                obj.P(:, t) = softmax(obj.O(:, t));
+                
+                % deterministic
+                % [~, y_int] = max(obj.P(:, t));
+                % y_char{t} = DICT.int2char(y_int);
+                % obj.X(:, t+1) = DICT.coder.encode(y_int);
+                
+                % random
+                cp = cumsum(obj.P(:, t));
+                a = rand;
+                ixs = find(cp-a>0);
+                ii = ixs(1);
+                y_char{t} = DICT.int2char(ii);
+                obj.X(:, t+1) = ind2vec(ii, obj.k);   
+            end
+            
+            text = strjoin(y_char, '');
         end
         
     end
