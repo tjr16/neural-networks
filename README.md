@@ -41,3 +41,13 @@ Regularization: L2
 New features: eg. batch normalization, He initialization, data augmentation
 
 Test accuracy (highest): 58.66%
+
+## recurrent neural network
+
+Dataset: Text from *Harry Potter and the Goblet of Fire*
+
+Optimization method: AdaGrad
+
+Loss function: cross entropy
+
+Goal: synthesize text
